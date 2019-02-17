@@ -6,6 +6,11 @@
     "outDir": "./bin",
     "strict": true
   },
-  "include": ["index.ts"],
+  "include": [
+      "animations.ts",
+      "index.ts",
+      "ledmatrix.ts",
+      "renderer.ts"
+  ],
   "exclude": ["node_modules", "**/__tests__/*"]
 }
