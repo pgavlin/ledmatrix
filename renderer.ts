@@ -231,7 +231,7 @@ void main() {
 let last = undefined;
 async function scheduleRedraw(render: (leds: any) => void) {
     const t = Date.now();
-    const leds = await (await window.fetch("/framebuffer")).json();
+    const leds = await (await window.fetch("/leds")).json();
     leds.content = base64_decode(leds.content);
     window.requestAnimationFrame(() => {
         render(leds);
@@ -242,7 +242,15 @@ async function scheduleRedraw(render: (leds: any) => void) {
 
 window.onload = async () => {
     const canvas = <HTMLCanvasElement>document.getElementById("canvas");
-    canvas.width = document.body.clientHeight;
-    canvas.height = document.body.clientHeight;
+
+    const cw = document.body.clientWidth, ch = document.body.clientHeight;
+    if (cw > ch) {
+        canvas.width = ch;
+        canvas.height = ch;
+        canvas.style.paddingLeft = `${(cw - ch) / 2}px`;
+    } else {
+        canvas.width = cw;
+        canvas.height = cw;
+    }
     scheduleRedraw(initGl());
 };

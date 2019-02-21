@@ -4,14 +4,31 @@ import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import * as net from "net";
+import { StringDecoder } from "string_decoder";
 import * as timers from "timers";
+import * as tsnode from "ts-node";
 import * as url from "url";
 import * as animations from "./animations";
 import * as ledmatrix from "./ledmatrix";
 
+const requireFromString = require("require-from-string");
+
+const compiler = tsnode.register({
+    typeCheck: true,
+    skipProject: true,
+    compilerOptions: {
+        target: "es6",
+        module: "commonjs",
+        moduleResolution: "node",
+        sourceMap: "true",
+    },
+});
+
 const mx = ledmatrix.create();
 
-const anim = animations.life();
+let programText = "";
+let anim = animations.life();
+
 async function renderFrame() {
     const delay = await anim.render(mx);
     mx.update();
@@ -32,7 +49,11 @@ server.on("request", async (req: http.IncomingMessage, resp: http.ServerResponse
             resp.writeHead(301, { "Location": u.href });
             break;
 
-        case "/framebuffer":
+        case "/leds":
+            if (req.method !== "GET") {
+                resp.writeHead(404);
+                break;
+            }
             resp.writeHead(200, { "Content-Type": "application/json" });
             await resp.write(JSON.stringify({
                 width: mx.getWidth(),
@@ -41,9 +62,54 @@ server.on("request", async (req: http.IncomingMessage, resp: http.ServerResponse
             }));
             break;
 
+        case "/program":
+            if (req.method === "GET") {
+                await resp.write(programText);
+            } else if (req.method === "PATCH") {
+                // upload a new program
+                const text = await new Promise<string>((resolve, reject) => {
+                    let s = "";
+                    const decoder = new StringDecoder();
+                    req.on("data", (chunk) => {
+                        s += decoder.write(chunk);
+                    });
+                    req.on("end", () => {
+                        resolve(s + decoder.end());
+                    });
+                    req.on("error", reject);
+                });
+
+                let compiled: string;
+                try {
+                    compiled = compiler.compile(text, "program.ts");
+                } catch (error) {
+                    resp.writeHead(400);
+                    await resp.write(error.message);
+                    break;
+                }
+
+                const program = requireFromString(compiled);
+                if (program.render === undefined) {
+                    resp.writeHead(400);
+                    break;
+                }
+                programText = text;
+                anim = <animations.Animation>program;
+            } else {
+                resp.writeHead(404);
+            }
+            break;
+
+        case "/editor.html":
         case "/index.html":
         case "/main.css":
         case "/renderer.js":
+            if (req.method !== "GET") {
+                console.log(req.method);
+                resp.writeHead(404);
+                break;
+            }
+
             resp.writeHead(200, { "Content-Type": mime.contentType(path.extname(p)) || "text/plain" });
             await resp.write(await new Promise((resolve) => fs.readFile(`.${p}`, (_, data) => resolve(data))));
             break;
