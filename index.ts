@@ -100,8 +100,11 @@ server.on("request", async (req: http.IncomingMessage, resp: http.ServerResponse
             }
             break;
 
+        case "/animations.d.ts":
+        case "/colors.d.ts":
         case "/editor.html":
         case "/index.html":
+        case "/ledmatrix.d.ts":
         case "/main.css":
         case "/renderer.js":
             if (req.method !== "GET") {

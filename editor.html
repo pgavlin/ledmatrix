@@ -12,6 +12,64 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.15.6/min/vs/loader.js"></script>
     <script>
+        const defaultText = `import * as animations from "./animations"; // Stock animations
+import * as colors from "./colors"; // Color manipulation library
+import * as ledmatrix from "./ledmatrix"; // LED matrix library
+
+// Render a rotating slice of the HSV color cylinder at V = 1.0.
+
+// The frame rate for the animation in frames per second.
+const frameRate = 60;
+// The duration of a single frame in milliseconds.
+const frameDuration = 1 / frameRate * 1000;
+// The angular velocity of the rotation in radians per second.
+const angularVelocity = Math.PI / 16;
+// The amount to step the angle offset in radians per frame.
+const angleOffsetStep = angularVelocity / frameRate;
+
+// The current offset that will be added to the color wheel in order to produce the rotation effect.
+let angleOffset = 0;
+export function render(mx: ledmatrix.LedMatrix): Promise<number> {
+    const height = mx.getHeight(), width = mx.getWidth();
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            // Normalize the x and y coordinates to [0, 1.0] and then translate them into the [-0.5, 0.5] x [-0.5, 0.5]
+            // coordinate space so they are centered on the center of the matrix.
+            const nx = x / width - 0.5, ny = y / height - 0.5;
+
+            // Convert the normalized cartesian coordinates into polar coordinates.
+            const r = Math.hypot(nx, ny);
+            const theta = Math.atan2(nx, ny);
+
+            // Compute the HSV color that corresponds to the polar coordinates of this pixel and convert it to RGB.
+            //
+            // The hue is calculated by adding the current angle offset to the angle of the pixel's polar coordinate
+            // and converting the result to degrees. Adding the angle offset produces the rotation effect.
+            //
+            // The saturation is calculated by normalizing the radius of the pixel's polar coordinate and clamping it to
+            // 1.0.
+            //
+            // The value is a constant 1.0. Changing this parameter will move the slice of the HSV color cylinder to a
+            // different portion of the color space.
+            const color = colors.hsvToRgb({
+                h: (((theta + angleOffset) / (2 * Math.PI)) % 1) * 360,
+                s: Math.min(r / 0.5, 1.0),
+                v: 1.0,
+            });
+
+            // Set the pixel at (x, y) in the LED matrix to the color calculated above.
+            mx.setPixel(x, y, color.r, color.g, color.b);
+        }
+    }
+
+    // Increment the current angle offset by the calculated step.
+    angleOffset += angleOffsetStep;
+
+    // Return the duration of this frame. The caller will wait this amount of time before the next callback.
+    return Promise.resolve(frameDuration);
+};`;
+
         var cdn = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.15.6";
         require.config({ paths: { "vs": `${cdn}/min/vs` }});
 
@@ -31,9 +89,25 @@
         };
 
         require(["vs/editor/editor.main"], function() {
-            window.fetch("/program").then(resp => resp.text()).then(text => {
+            monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+                target: monaco.languages.typescript.ScriptTarget.ES2016,
+                allowNonTsExtensions: true,
+                moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+                module: monaco.languages.typescript.ModuleKind.CommonJS,
+                noEmit: true,
+            });
+
+            let libs = ["animations", "colors", "ledmatrix"];
+            let contents = libs.map(f => window.fetch(`/${f}.d.ts`).then(resp => resp.text()));
+            let libsReady = Promise.all(contents).then(texts => {
+                for (let i = 0; i < libs.length; i++) {
+                    monaco.languages.typescript.typescriptDefaults.addExtraLib(texts[i], `inmemory://model/${libs[i]}.d.ts`);
+                }
+            });
+            let programReady = window.fetch("/program").then(resp => resp.text());;
+            Promise.all([libsReady, programReady]).then(([_, text]) => {
                 window.editor = monaco.editor.create(document.getElementById("container"), {
-                    value: text,
+                    value: text || defaultText,
                     language: "typescript"
                 });
             });
