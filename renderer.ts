@@ -94,7 +94,7 @@ uniform vec2 u_gridDimensions;
 
 void psf(in vec2 ledIndex, in vec2 point, inout vec4 acc) {
     vec2 ledCenter = ledIndex / u_gridDimensions + vec2(0.5, 0.5) / u_gridDimensions;
-    vec2 texCoord = vec2(ledIndex.x, u_gridDimensions.y - ledIndex.y) / u_gridDimensions;
+    vec2 texCoord = vec2(ledIndex.x, u_gridDimensions.y - ledIndex.y - 1.0) / u_gridDimensions;
     vec4 ledColor = texture2D(u_image, vec2(texCoord.x, texCoord.y));
 
     float r = length(ledCenter - point);

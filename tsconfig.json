@@ -8,6 +8,7 @@
   },
   "include": [
       "animations.ts",
+      "colors.ts",
       "index.ts",
       "ledmatrix.ts",
       "renderer.ts"

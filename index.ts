@@ -11,8 +11,9 @@ import * as ledmatrix from "./ledmatrix";
 
 const mx = ledmatrix.create();
 
+const anim = animations.life();
 async function renderFrame() {
-    const delay = await animations.pulumipus.render(mx);
+    const delay = await anim.render(mx);
     mx.update();
     timers.setTimeout(renderFrame, delay);
 }
@@ -32,7 +33,6 @@ server.on("request", async (req: http.IncomingMessage, resp: http.ServerResponse
             break;
 
         case "/framebuffer":
-           
             resp.writeHead(200, { "Content-Type": "application/json" });
             await resp.write(JSON.stringify({
                 width: mx.getWidth(),

@@ -4,7 +4,7 @@
   "description": "",
   "main": "bin/index.js",
   "scripts": {
-    "build": "tsc && cp main.css index.html pulumipus.json bin/",
+    "build": "tsc && cp main.css index.html adafruit.json fizzbuzz.json lambda.json parrot.json partypus.json partypus-walk.json pulumipus.json bin/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
