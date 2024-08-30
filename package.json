@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@types/mime-types": "^2.1.0",
+    "@types/qrcode": "^1.5.5",
     "mime-types": "^2.1.22",
+    "qrcode": "^1.5.4",
     "require-from-string": "^2.0.2",
     "ts-node": "^8.0.2"
   }
